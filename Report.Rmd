@@ -1,0 +1,62 @@
+---
+title: "Big Data in Health Care Project"
+author: "Jan Robert Eljasiak"
+date: "2025-05-01"
+output: pdf_document
+---
+
+```{r}
+df <- read.csv("data.txt", header = TRUE, sep = " ")
+head(df)
+```
+
+```{r}
+numerical_variables <-  c('Age', 'TimeToFirstRecMonths', 'FupAfterFirstRecMonths')
+categorical_variables <- setdiff(names(data), c(numerical_variables, 'idpat'))
+categorical_variables
+```
+
+
+# Descriptive analyses of all variables in the dataset
+
+```{r}
+library(psych)
+describe(df[numerical_variables])
+```
+## Age
+
+```{r}
+library(ggplot2)
+
+ggplot(df, aes(x = Age)) +
+  geom_histogram(binwidth = 1, fill = "green", color = "black", alpha = 0.8) +
+  labs(title = "Distribution of Age",
+       x = "Age (years)",
+       y = "Count") +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(30, 90, by = 2))  # Set x-axis breaks at every 5 years
+```
+
+
+
+* The range (difference between min and max) is 56 years, from a minimum of 32 to a maximum of 88.
+
+* The average age in the sample is approximately 69 years, with a median slightly higher at 71, suggesting a slight concentration of older individuals.
+
+* The trimmed mean (which removes extreme values) is 69.85, showing that the central tendency is not heavily influenced by outliers.
+
+* The standard deviation of 9.52 and MAD of 7.41 suggest moderate variability. These two values are fairly close, which supports a relatively symmetric distribution.
+
+* The skewness is -1.03, indicating a slight negative (left) skew; more values are concentrated on the higher end of the age scale.
+
+* The kurtosis value near 1 suggests the distribution is relatively flat compared to a normal distribution, indicating less presence of extreme age values.
+
+* The standard error (SE) of 0.53 indicates a precise estimate of the population mean age given the sample size.
+
+
+## TimeToFirstRecMonths
+On average, the time from resection of the primary tumor and first recurrence is about 25 months, but the median is lower (17.28 months), suggesting a right-skewed distribution. This is supported by the positive skewness value (1.11), indicating a longer tail toward higher values—some individuals experience much later recurrences. The high standard deviation (21.60) and wide range (1.08 to 113.51 months) show substantial variability. The low kurtosis value (0.55) suggests a flatter distribution, meaning the data is more spread out with fewer outliers than a normal distribution.
+
+
+
+
