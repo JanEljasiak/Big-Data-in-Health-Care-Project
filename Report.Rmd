@@ -1,62 +1,294 @@
 ---
 title: "Big Data in Health Care Project"
-author: "Jan Robert Eljasiak"
+author: "Jan Robert Eljasiak 909837"
 date: "2025-05-01"
 output: pdf_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
 
 ```{r}
 df <- read.csv("data.txt", header = TRUE, sep = " ")
 head(df)
 ```
 
+
+
 ```{r}
 numerical_variables <-  c('Age', 'TimeToFirstRecMonths', 'FupAfterFirstRecMonths')
-categorical_variables <- setdiff(names(data), c(numerical_variables, 'idpat'))
-categorical_variables
+categorical_variables <- setdiff(names(df), c(numerical_variables, 'idpat'))
 ```
 
 
 # Descriptive analyses of all variables in the dataset
 
+We display descriptive statistics for the numerical variables ‘Age’, ‘TimeToFirstRecMonths’, and ‘FupAfterFirstRecMonths’. All other columns, excluding the identifier ‘idpat’, are treated as categorical and their distributions are reported in terms of frequencies and percentages.
+
+## Categorical variables
+
+```{r}
+# Create frequency tables for each categorical variable
+for (var in categorical_variables) {
+  cat("\n\nVariable:", var, "\n")
+  print(prop.table(table(df[[var]])) * 100)
+  print(table(df[[var]]))
+}
+```
+
+The dataset includes several categorical variables describing patient characteristics and outcomes. Most patients were male (77%). A majority experienced multinodular recurrence (56%), and 14% had a large nodule at recurrence. Extrahepatic recurrence occurred in 19% of patients. Regarding outcomes, 58% had no second recurrence or death during follow-up, while 32% had a second recurrence and 9% died without recurrence. After the first recurrence, 63% of patients received palliative care, and 37% received curative treatment.
+
+
+## Numerical variables
+
 ```{r}
 library(psych)
-describe(df[numerical_variables])
+# Descriptive statistics including 1st and 3rd quartile
+describe(df[numerical_variables], quant = c(0.25, 0.75))
 ```
+
+Across all three numeric variables (Age, TimeToFirstRecMonths, FupAfterFirstRecMonths), the kurtosis values range between 0 and 2, indicating slightly flatter (platykurtic) distributions compared to a normal distribution. This suggests that outliers are less common than in a normal curve, and the data is generally spread more evenly.
+
+The standard errors (SE) of the means are all low (around 1) due to the relatively large sample size (n = 317). This indicates that the estimated means are precise and reliable, and the sample means are good reflections of the population means.
+
+```{r}
+library(tidyr)
+library(ggplot2)
+
+# Reshape the dataset to long format
+df_long <- df %>%
+  pivot_longer(cols = c(Age, TimeToFirstRecMonths, FupAfterFirstRecMonths),
+               names_to = "Variable",
+               values_to = "Value")
+
+# Create a single boxplot with facets for each variable
+ggplot(df_long, aes(x = Variable, y = Value, fill = Variable)) +
+  geom_boxplot(outlier.colour = "red", outlier.shape = 1) +
+  labs(title = "Boxplots of Numeric Variables",
+       x = "Variable",
+       y = "Value") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
+
+
 ## Age
 
 ```{r}
 library(ggplot2)
 
 ggplot(df, aes(x = Age)) +
-  geom_histogram(binwidth = 1, fill = "green", color = "black", alpha = 0.8) +
+  geom_histogram(binwidth = 1, fill = "red", color = "black", alpha = 0.8) +
   labs(title = "Distribution of Age",
        x = "Age (years)",
        y = "Count") +
   theme_minimal() +
-  scale_x_continuous(breaks = seq(30, 90, by = 2))  # Set x-axis breaks at every 5 years
+  scale_x_continuous(breaks = seq(30, 90, by = 5))  # Set x-axis breaks at every 5 years
 ```
-
-
 
 * The range (difference between min and max) is 56 years, from a minimum of 32 to a maximum of 88.
 
-* The average age in the sample is approximately 69 years, with a median slightly higher at 71, suggesting a slight concentration of older individuals.
+* The average age in the sample is approximately 69 years, with a median at 71, suggesting a slight concentration of older individuals.
 
-* The trimmed mean (which removes extreme values) is 69.85, showing that the central tendency is not heavily influenced by outliers.
+* The trimmed mean (which removes extreme values) is approximately 70, showing that the central tendency is not heavily influenced by outliers.
 
-* The standard deviation of 9.52 and MAD of 7.41 suggest moderate variability. These two values are fairly close, which supports a relatively symmetric distribution.
+* The skewness is -1.03, indicating a slight negative (left) skew - more values are concentrated on the higher end of the age scale.
 
-* The skewness is -1.03, indicating a slight negative (left) skew; more values are concentrated on the higher end of the age scale.
-
-* The kurtosis value near 1 suggests the distribution is relatively flat compared to a normal distribution, indicating less presence of extreme age values.
-
-* The standard error (SE) of 0.53 indicates a precise estimate of the population mean age given the sample size.
-
+* The standard deviation of 9.52 and MAD (Median Absolute Deviation) of 7.41 suggest moderate variability. These two values are fairly close, which supports a relatively symmetric distribution.
 
 ## TimeToFirstRecMonths
-On average, the time from resection of the primary tumor and first recurrence is about 25 months, but the median is lower (17.28 months), suggesting a right-skewed distribution. This is supported by the positive skewness value (1.11), indicating a longer tail toward higher values—some individuals experience much later recurrences. The high standard deviation (21.60) and wide range (1.08 to 113.51 months) show substantial variability. The low kurtosis value (0.55) suggests a flatter distribution, meaning the data is more spread out with fewer outliers than a normal distribution.
+
+```{r}
+ggplot(df, aes(x = TimeToFirstRecMonths)) +
+  geom_histogram(binwidth = 2, fill = "green", color = "black", alpha = 0.8) +
+  labs(title = "Time to First Recurrence",
+       x = "Months",
+       y = "Count") +
+  theme_minimal()
+```
 
 
+* On average, the time from resection of the primary tumor and first recurrence is about 24.6 months, while the median is lower (17.3 months), suggesting a right-skewed distribution.
 
+* The range is wide, from 1.1 to 113.5 months, and the standard deviation of 21.6 months reflects substantial variability.
+
+The positive skewness (1.1) confirms a longer right tail — some patients experienced much later recurrence.
+
+The high standard deviation (21.6) and wide range (1.1 to 113.5 months) show substantial variability. 
+
+## FupAfterFirstRecMonths
+
+```{r}
+ggplot(df, aes(x = FupAfterFirstRecMonths)) +
+  geom_histogram(binwidth = 2, fill = "deepskyblue", color = "black", alpha = 0.8) +
+  labs(title = "Follow-up Time After First Recurrence",
+       x = "Months",
+       y = "Count") +
+  theme_minimal()
+```
+* The average follow-up time after the first recurrence is approximately 19.5 months, while the median is notably lower at 12 months, indicating a right-skewed distribution with some patients having very long follow-up time since first recurrence.
+
+* The range of follow-up time is quite wide, from 0.3 to 88.0 months (almost 7.5 years), with a standard deviation of 18.72 months, suggesting considerable variation in follow-up lengths.
+
+* The skewness is approximately 1.5, indicating a positive skew — a longer tail on the right, with some patients followed for much longer than average.
+
+# Nonparametric Analysis
+
+```{r}
+library(cmprsk)
+
+# Compute Cumulative Incidence Functions
+cif <- with(df, cuminc(
+  ftime = FupAfterFirstRecMonths,
+  fstatus = SecondRecOrDeath,
+  group = RecTreat))
+
+print(cif)
+```
+
+A competing risks analysis was performed to assess the effect of treatment of the first recurrence —**curative (CUR)** versus **palliative (PAL)**—on two mutually exclusive outcomes following the first recurrence of hepatocellular carcinoma (HCC).
+
+The printed result shows the estimated marginal probability of each outcome (1= second recurrence, 2= death without second recurrence) at days 20, 40, 60 and 80 along with the variance for each estimate.
+
+The results were obtained from a competing risks analysis ( using ***cuminc()*** from the ***cmprsk*** package), and these values correspond to:
+
+1. Gray’s test for differences between treatment groups for each type of event.
+
+2. Cumulative incidence estimates (Aalen-Johansen estimator).
+
+3. Variance estimates for those cumulative incidences.
+
+
+### Gray's Test Results
+
+```{r}
+# Perform Gray's test and display results
+cif$Tests
+```
+
+Gray's test identified a statistically significant difference in the cumulative incidence of second recurrence between treatment groups (*p* = 0.001). No significant difference was observed in the incidence of death without recurrence (*p* = 0.637). 
+
+These results suggest that curative treatment (CUR) is associated with a lower risk of second recurrence compared to palliative treatment (PAL). However, treatment type does not seem to influence mortality due to death without second recurrence.
+
+
+### Cumulative incidence estimates (Aalen-Johansen estimator)
+
+```{r}
+# Aalen-Johansen CIF plot
+plot(cif, 
+     lty = c(1, 1, 2, 2), 
+     col = c("blue", "red", "blue", "red"),
+     lwd = 2,
+     xlab = "Time since first recurrence (months)", 
+     ylab = "Cumulative incidence",
+     main = "Cumulative Incidence of Competing Events",
+     xaxs = "r", yaxs = "r", 
+     cex.lab = 1.2, cex.main = 1.3, cex.axis = 1.1)
+```
+
+The curve representing PAL patients experiencing second recurrence (red solid line) shows a notably higher and steeper trajectory than that of CUR patients (blue solid line). This indicates that patients treated with PAL not only face a higher probability of second recurrence but also tend to experience it earlier in the follow-up period. From the start point, the gap between the two groups is visible, and it continues to widen until approximately 60 months, at which point the PAL curve begins to plateau, suggesting most recurrences occur relatively early in the PAL group.
+
+In contrast, the dashed lines representing death without recurrence for both groups (CUR 2 and PAL 2) remain low and closely aligned across all time points. This visualization with the non-significant Gray’s test suggests that the type of treatment (CUR or PAL) does not have a substantial effect on mortality in the absence of a second recurrence.
+
+### Variance Estimates
+
+The variance estimates provide a measure of precision for the cumulative incidence values:
+
+Lower variances (e.g., <0.002) at earlier time points (20–40 months) reflect high confidence in the estimates due to larger sample sizes and event counts.
+
+At later time points (e.g., 80 months), variance increases substantially (e.g., 0.027 for CUR death), signaling reduced precision as fewer patients remain under observation.
+
+## Conclusions
+
+These findings support the following conclusions:
+
+* Curative treatment (CUR) is associated with a significantly lower incidence of second recurrence compared to palliative treatment.
+
+* No significant difference in the risk of death without recurrence was observed between groups.
+
+* Estimates at longer follow-up times (>60 months) should be interpreted with caution due to increasing variance and reduced sample size, especially in the PAL group.
+
+# Univariate analysis
+
+In the univariate analysis, certain variables from the dataset—namely idpat, FupAfterFirstRecMonths, and SecondRecOrDeath—were intentionally excluded as independent predictors. These variables serve structural or outcome-related roles in the analysis:
+
+*idpat* is a patient identifier and carries no clinical relevance as a predictor.
+
+*FupAfterFirstRecMonths* is the time-to-event variable used in the survival function and is not a covariate.
+
+*SecondRecOrDeath* defines the event status and is the primary outcome variable in the survival models.
+
+Including these variables as predictors would be methodologically inappropriate and could bias or invalidate the model interpretation. All other clinically relevant and available covariates were included in the univariate analyses.
+
+```{r}
+# Make sure the event variable is numeric
+df$SecondRecOrDeath <- as.numeric(df$SecondRecOrDeath)
+
+# Define variables to analyze
+vars <- c("Age", "Gender", "RecMultinodular", "RecNoduleLargeSize", 
+          "RecExtrahepatic", "TimeToFirstRecMonths", "RecTreat")
+
+# Outcome variables for cause-specific Cox models
+# Composite endpoint (event = 1 or 2)
+df$composite_event <- ifelse(df$SecondRecOrDeath != 0, 1, 0)
+
+# Second recurrence as event, others as censored
+df$cs_rec <- ifelse(df$SecondRecOrDeath == 1, 1, 0)
+
+# Death without recurrence as event, others as censored
+df$cs_death <- ifelse(df$SecondRecOrDeath == 2, 1, 0)
+```
+
+
+```{r}
+cat("----- Death without Recurrence (cause-specific Cox) -----\n\n")
+for (v in vars) {
+  f <- as.formula(paste("Surv(FupAfterFirstRecMonths, cs_death) ~", v))
+  model <- coxph(f, data = df)
+  print(summary(model))
+}
+```
+
+## Key Results
+
+In the univariate cause-specific Cox proportional hazards analysis of 317 patients, we investigated the association of several clinical and demographic factors with the risk of death without experiencing a second recurrence of hepatocellular carcinoma (HCC). Among all covariates, only RecNoduleLargeSize (defined as recurrent nodule >5 cm) was significantly associated with the outcome, showing a hazard ratio (HR) of 2.46 (95% CI: 1.05–5.77, p = 0.039), indicating more than a two-fold increased risk of death in patients with large nodules.
+
+Other variables, including age, gender, multinodular recurrence, extrahepatic recurrence, time to first recurrence, and treatment type, were not significantly associated with this outcome (p > 0.05). These findings suggest that among the factors evaluated, large nodule size may play a key role in short-term mortality after first recurrence of HCC.
+
+```{r}
+run_univariate <- function(event, var_list, time, data) {
+  results <- data.frame(Variable = var_list,
+                        HR = NA,
+                        Lower95CI = NA,
+                        Upper95CI = NA,
+                        p.value = NA)
+  
+  for (i in seq_along(var_list)) {
+    var <- var_list[i]
+    formula <- as.formula(paste0("Surv(", time, ", ", event, ") ~ ", var))
+    model <- coxph(formula, data = data)
+    s <- summary(model)
+    results$HR[i] <- round(s$coef[1, "exp(coef)"], 2)
+    results$Lower95CI[i] <- round(s$conf.int[1, "lower .95"], 2)
+    results$Upper95CI[i] <- round(s$conf.int[1, "upper .95"], 2)
+    results$p.value[i] <- signif(s$coef[1, "Pr(>|z|)"], 3)
+  }
+  return(results)
+}
+
+```
+
+```{r}
+# Univariate analysis for Second Recurrence
+res_secondrec <- run_univariate("SecondRec", variables, "FupAfterFirstRecMonths", hcc_data)
+
+# Univariate analysis for Death Without Second Recurrence
+res_death <- run_univariate("DeathNoSecondRec", variables, "FupAfterFirstRecMonths", hcc_data)
+
+# Univariate analysis for Composite Outcome
+res_composite <- run_univariate("Composite", variables, "FupAfterFirstRecMonths", hcc_data)
+```
 
